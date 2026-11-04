@@ -32,7 +32,9 @@ def cmd_check(args) -> int:
     if live:
         from .supabase_backend import SupabaseBackend
         with client() as http:
-            cfg.accounts = SupabaseBackend(secret("SUPABASE_URL"), secret("SUPABASE_SERVICE_ROLE_KEY"), http).accounts()
+            backend = SupabaseBackend(secret("SUPABASE_URL"), secret("SUPABASE_SERVICE_ROLE_KEY"), http)
+            backend.load_settings()
+            cfg.accounts = backend.accounts()
         print(f"Live page (Supabase): {len(cfg.accounts)} active accounts")
     else:
         print(f"{len(cfg.accounts)} accounts in config/accounts.toml")

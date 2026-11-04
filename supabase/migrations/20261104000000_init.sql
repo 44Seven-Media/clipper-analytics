@@ -1,11 +1,13 @@
 -- Clipper Network analytics: accounts, their platform logins, and the daily history.
 --
 -- Who can see anything: only people listed in team_members (by email) who have signed in.
--- Platform logins (connections) and sign-in attempts (oauth_states) have no policies at all,
--- so only the server side (connect functions, daily job) can read them.
+-- Viewers see the dashboard; admins also manage accounts, connections and the team.
+-- Platform logins (connections), platform app keys (app_settings) and sign-in attempts
+-- (oauth_states) have no policies at all, so only the server side can read them.
 
 create table public.team_members (
   email text primary key check (email = lower(email)),
+  role text not null default 'viewer' check (role in ('admin', 'viewer')),
   added_at timestamptz not null default now()
 );
 
@@ -13,6 +15,29 @@ create or replace function public.is_team() returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.team_members where email = lower(coalesce(auth.jwt() ->> 'email', '')));
 $$;
+
+create or replace function public.is_admin() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.team_members
+                 where email = lower(coalesce(auth.jwt() ->> 'email', '')) and role = 'admin');
+$$;
+
+create or replace function public.my_role() returns text
+language sql stable security definer set search_path = public as $$
+  select role from public.team_members where email = lower(coalesce(auth.jwt() ->> 'email', ''));
+$$;
+grant execute on function public.is_team(), public.is_admin(), public.my_role() to authenticated;
+
+-- Platform developer-app keys entered on the Settings page. Only the server side reads them.
+create table public.app_settings (
+  key text primary key check (key in (
+    'META_APP_ID', 'META_APP_SECRET', 'TIKTOK_CLIENT_KEY', 'TIKTOK_CLIENT_SECRET',
+    'YOUTUBE_API_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET',
+    'X_CLIENT_ID', 'X_CLIENT_SECRET', 'X_BEARER_TOKEN')),
+  value text not null,
+  updated_at timestamptz not null default now(),
+  updated_by text not null default ''
+);
 
 create table public.accounts (
   id text primary key default ('acc-' || substr(md5(gen_random_uuid()::text), 1, 10)),
@@ -103,21 +128,24 @@ create index posts_account on public.posts (account_id);
 create index posts_views on public.posts (views desc nulls last);
 
 alter table public.team_members enable row level security;
+alter table public.app_settings enable row level security;
 alter table public.accounts enable row level security;
 alter table public.connections enable row level security;
 alter table public.oauth_states enable row level security;
 alter table public.daily_stats enable row level security;
 alter table public.posts enable row level security;
 
-create policy "team reads team" on public.team_members for select to authenticated using (public.is_team());
+create policy "admins read team" on public.team_members for select to authenticated using (public.is_admin());
 create policy "team reads accounts" on public.accounts for select to authenticated using (public.is_team());
-create policy "team adds accounts" on public.accounts for insert to authenticated with check (public.is_team() and connection = 'handle');
-create policy "team edits accounts" on public.accounts for update to authenticated using (public.is_team()) with check (public.is_team());
-create policy "team removes accounts" on public.accounts for delete to authenticated using (public.is_team());
+create policy "admins add accounts" on public.accounts for insert to authenticated with check (public.is_admin() and connection = 'handle');
+create policy "admins edit accounts" on public.accounts for update to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "admins remove accounts" on public.accounts for delete to authenticated using (public.is_admin());
 create policy "team reads stats" on public.daily_stats for select to authenticated using (public.is_team());
 create policy "team reads posts" on public.posts for select to authenticated using (public.is_team());
 
--- The team may rename, regroup, pause or remove accounts, but not forge a platform connection.
+-- Admins may rename, regroup, pause or remove accounts, but not forge a platform connection.
+-- Team membership is changed only through the settings function.
+revoke insert, update, delete on public.team_members from authenticated, anon;
 revoke update on public.accounts from authenticated;
 grant update (name, group_name, active) on public.accounts to authenticated;
 

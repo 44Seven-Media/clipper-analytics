@@ -78,6 +78,8 @@ def run(cfg: Config, today: str | None = None, only: set[str] | None = None, htt
             return False
 
     try:
+        if hasattr(backend, "load_settings"):
+            backend.load_settings()
         accounts = [a for a in backend.accounts() if not only or a.id in only or a.platform in only]
         by_platform = defaultdict(list)
         for a in accounts:

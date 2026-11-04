@@ -4,6 +4,7 @@ Talks to Supabase's REST API with the service role key, which only the daily job
 """
 from __future__ import annotations
 
+import os
 import time
 from dataclasses import asdict
 
@@ -76,6 +77,16 @@ class SupabaseBackend:
     def __init__(self, url: str, key: str, http: httpx.Client):
         self.db = Supabase(url, key, http)
         self.tokens = SupabaseTokens(self.db)
+
+    def load_settings(self) -> list[str]:
+        """Platform keys saved on the Settings page. Keys already in the environment win."""
+        rows = self.db.call("GET", "app_settings", params={"select": "key,value"}) or []
+        used = []
+        for r in rows:
+            if r.get("value") and not os.environ.get(r["key"]):
+                os.environ[r["key"]] = r["value"]
+                used.append(r["key"])
+        return used
 
     def accounts(self) -> list[Account]:
         rows = self.db.call("GET", "accounts", params={

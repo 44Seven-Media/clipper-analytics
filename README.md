@@ -5,7 +5,6 @@ A live page that tracks followers, views and top clips for every clipper account
 "Connect" button, and the numbers update once a day.
 
 - **Live page:** <https://44seven-media.github.io/clipper-analytics/> (sign-in required)
-- **Sample view** with invented numbers: <https://44seven-media.github.io/clipper-analytics/?sample#dashboard>
 
 ## How it fits together
 
@@ -159,13 +158,11 @@ python3.13 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 ```
 
 - `web/`: the live page. `dashboard.js` draws the dashboard; `app.js` handles sign-in and
-  the Accounts tab. Preview it locally with `python3 -m http.server --directory web` and open
-  `http://localhost:8000/?sample`.
+  the Accounts and Settings tabs.
 - `supabase/migrations/`: tables, access rules and the functions the daily job saves through.
 - `supabase/functions/`: the Connect step (`connect-start`, `connect-callback`). Their tests
   run with `deno test --allow-env supabase/functions/_tests`.
 - `src/clipper_analytics/`: the daily job. One collector per platform in `platforms/`.
-- `clipper demo --json web/sample.json` regenerates the sample data.
 
 Without Supabase settings, `clipper collect` falls back to CSV files in `data/` and
 `clipper build` writes a standalone page to `dashboard/`. Both folders are git-ignored so no

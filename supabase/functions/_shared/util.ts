@@ -1,6 +1,15 @@
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.45.4";
 
-export const env = (name: string): string => (Deno.env.get(name) ?? "").trim();
+// Platform app keys come from the Settings page (app_settings table), falling back to function secrets.
+const saved = new Map<string, string>();
+export const env = (name: string): string => (saved.get(name) || Deno.env.get(name) || "").trim();
+
+export async function loadSettings(svc: SupabaseClient): Promise<void> {
+  const { data, error } = await svc.from("app_settings").select("key,value");
+  if (error) throw new Error(`Couldn't read settings: ${error.message}`);
+  saved.clear();
+  for (const r of data ?? []) if (r.value) saved.set(r.key, r.value);
+}
 
 export const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +30,19 @@ export function userClient(authHeader: string): SupabaseClient {
     auth: { persistSession: false },
     global: { headers: { Authorization: authHeader } },
   });
+}
+
+export type Caller = { email: string; id: string; role: "admin" | "viewer" };
+
+/** The signed-in team member making this request, or a Response explaining why not. */
+export async function caller(req: Request, needAdmin: boolean): Promise<Caller | Response> {
+  const uc = userClient(req.headers.get("Authorization") ?? "");
+  const { data: { user } } = await uc.auth.getUser();
+  if (!user) return json({ error: "Sign in again, then try once more." }, 401);
+  const { data: role } = await uc.rpc("my_role");
+  if (!role) return json({ error: "Your email isn't on the team list yet." }, 403);
+  if (needAdmin && role !== "admin") return json({ error: "Only admins can do this." }, 403);
+  return { email: user.email ?? "", id: user.id, role };
 }
 
 export function callbackUrl(): string {

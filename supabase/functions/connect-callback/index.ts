@@ -1,7 +1,7 @@
 // Step 2 of "Connect": the platform sends the browser back here with a one-time code.
 // Save every account it shared, keep the login for the daily job, then return to the page.
 import { PROVIDERS } from "../_shared/providers.ts";
-import { callbackUrl, env, serviceClient, UserError } from "../_shared/util.ts";
+import { callbackUrl, env, loadSettings, serviceClient, UserError } from "../_shared/util.ts";
 
 const MAX_AGE_MS = 20 * 60 * 1000;
 
@@ -29,6 +29,7 @@ Deno.serve(async (req) => {
   if (denied || !code) return back({ connect_error: `Sign-in was cancelled${denied ? `: ${denied}` : ""}.` });
 
   try {
+    await loadSettings(svc);
     const found = await PROVIDERS[row.platform].finish(code, row.code_verifier, callbackUrl());
     let added = 0, updated = 0;
     for (const f of found) {

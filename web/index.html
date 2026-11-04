@@ -13,7 +13,8 @@
   <div class="topbar-inner">
     <nav class="tabs-nav" aria-label="Sections">
       <a href="#dashboard" id="nav-dashboard">Dashboard</a>
-      <a href="#accounts" id="nav-accounts">Accounts</a>
+      <a href="#accounts" id="nav-accounts" hidden>Accounts</a>
+      <a href="#settings" id="nav-settings" hidden>Settings</a>
     </nav>
     <div class="who">
       <span id="whoEmail"></span>
@@ -28,7 +29,7 @@
   <div class="auth-card">
     <h1>Clipper Network</h1>
     <p class="muted" id="authLead">Sign in to see followers, views and top clips across every clipper account.</p>
-    <p class="notice" id="notConfigured" hidden>Sign-in isn't set up yet. The page is live, but it still needs its Supabase project. You can look at the sample dashboard in the meantime.</p>
+    <p class="notice" id="notConfigured" hidden>Sign-in is being set up. Check back shortly.</p>
     <form id="loginForm" novalidate>
       <label for="email">Email</label>
       <input id="email" type="email" autocomplete="username" required>
@@ -45,7 +46,6 @@
       <p class="form-error" id="newPassError" hidden></p>
       <button type="submit" class="btn-primary" id="newPassBtn">Save password</button>
     </form>
-    <div class="auth-foot"><a href="?sample#dashboard" id="sampleLink">View sample dashboard</a></div>
   </div>
 </section>
 
@@ -66,7 +66,6 @@
   <header class="acc-head">
     <h1>Accounts</h1>
     <p class="muted">Connect each account once. The daily update at about 6 AM Central does the rest.</p>
-    <p class="notice" id="sampleNotice" hidden>This is the sample view. Connect buttons work once sign-in is set up.</p>
   </header>
 
   <section class="card">
@@ -79,9 +78,9 @@
     <form class="handle-form" id="handleForm" novalidate>
       <div class="field"><label for="hfPlatform">Platform</label>
         <select id="hfPlatform"><option value="youtube">YouTube</option><option value="x">X</option></select></div>
-      <div class="field"><label for="hfHandle">Handle</label><input id="hfHandle" placeholder="@realafclips" required></div>
-      <div class="field"><label for="hfName">Name on the dashboard</label><input id="hfName" placeholder="REAL AF Clips" required></div>
-      <div class="field"><label for="hfGroup">Group (optional)</label><input id="hfGroup" placeholder="REAL AF" list="groupList"></div>
+      <div class="field"><label for="hfHandle">Handle</label><input id="hfHandle" placeholder="@handle" required></div>
+      <div class="field"><label for="hfName">Name on the dashboard</label><input id="hfName" required></div>
+      <div class="field"><label for="hfGroup">Group (optional)</label><input id="hfGroup" list="groupList"></div>
       <button type="submit" class="btn-primary" id="hfSubmit">Add account</button>
     </form>
     <datalist id="groupList"></datalist>
@@ -96,6 +95,37 @@
       <tbody id="accRows"></tbody>
     </table></div>
     <p class="sub" id="accEmpty" hidden>No accounts yet. Use Connect above to add the first ones.</p>
+  </section>
+</section>
+
+<section id="view-settings" class="acc-page" hidden>
+  <header class="acc-head">
+    <h1>Settings</h1>
+    <p class="muted">Set up each platform once, then connect accounts on the Accounts tab.</p>
+  </header>
+
+  <section class="card">
+    <div class="card-head"><div><h2>Connections</h2>
+      <p class="sub">Each platform needs a free developer app (X's is paid). Follow the steps, then paste the app's keys here. Secrets are stored server-side and never shown again.</p></div></div>
+    <div class="callback">
+      <div><b>Callback URL</b><span class="muted"> · paste this into every platform's app</span></div>
+      <div class="copyrow"><code id="callbackUrl">Loading…</code><button type="button" class="btn" id="copyCallback">Copy</button></div>
+    </div>
+    <div class="setup-list" id="setupList"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><div><h2>Team</h2><p class="sub">Viewers see the dashboard. Admins can also connect accounts and change settings.</p></div></div>
+    <form class="handle-form team-form" id="inviteForm" novalidate>
+      <div class="field"><label for="inviteEmail">Email</label><input id="inviteEmail" type="email" autocomplete="off" required></div>
+      <div class="field"><label for="inviteRole">Role</label><select id="inviteRole"><option value="viewer">Viewer</option><option value="admin">Admin</option></select></div>
+      <button type="submit" class="btn-primary" id="inviteBtn">Send invite</button>
+    </form>
+    <p class="form-error" id="inviteError" hidden></p>
+    <div class="table-wrap"><table class="acc-table team-table">
+      <thead><tr><th class="l" scope="col">Email</th><th class="l" scope="col">Role</th><th class="l" scope="col">Last sign-in</th><th scope="col"><span class="sr">Actions</span></th></tr></thead>
+      <tbody id="teamRows"></tbody>
+    </table></div>
   </section>
 </section>
 

@@ -29,8 +29,10 @@ class FakeTokens:
 
 @respx.mock
 def test_daily_run_against_supabase(project, monkeypatch):
-    monkeypatch.setenv("TIKTOK_CLIENT_KEY", "ck")
+    monkeypatch.delenv("TIKTOK_CLIENT_KEY", raising=False)
     monkeypatch.setenv("TIKTOK_CLIENT_SECRET", "cs")
+    monkeypatch.delenv("X_BEARER_TOKEN", raising=False)
+    respx.get(f"{REST}/app_settings").respond(json=[{"key": "TIKTOK_CLIENT_KEY", "value": "from-settings"}])
     respx.get(f"{REST}/accounts").respond(json=[
         {"id": "acc-1", "name": "REAL AF", "platform": "tiktok", "handle": "realafclips", "external_id": "o1", "group_name": "REAL AF"},
         {"id": "acc-2", "name": "Clips", "platform": "x", "handle": "clips", "external_id": "", "group_name": ""},
@@ -52,6 +54,8 @@ def test_daily_run_against_supabase(project, monkeypatch):
     with httpx.Client() as c:
         s = collect.run(cfg, today="2026-11-04", http=c, backend=SupabaseBackend(URL, "service", c))
     assert s.ok == ["acc-1"] and "acc-2" in s.skipped
+    # the client key saved on the Settings page was used for the TikTok refresh
+    assert b"client_key=from-settings" in respx.calls[[c.request.url.host for c in respx.calls].index("open.tiktokapis.com")].request.content
     # refreshed TikTok login was saved straight back
     assert json.loads(saved_conn.calls[0].request.content)["refresh_token"] == "R2"
     assert expires.called

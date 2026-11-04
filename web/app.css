@@ -86,3 +86,33 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   .handle-form { grid-template-columns: minmax(0, 1fr); }
   .who span { display: none; }
 }
+
+/* Settings */
+.callback { display: grid; gap: 6px; background: var(--wash); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+.copyrow { display: flex; gap: 8px; align-items: center; min-width: 0; }
+.copyrow code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--raised); box-shadow: inset 0 0 0 1px var(--ring); border-radius: 6px; padding: 7px 9px; }
+.setup-list { display: grid; gap: 12px; }
+.setup { background: var(--raised); border-radius: 10px; box-shadow: inset 0 0 0 1px var(--ring); }
+.setup > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 14px; }
+.setup > summary::-webkit-details-marker { display: none; }
+.setup > summary h3 { margin: 0; font-size: 14.5px; display: flex; align-items: center; gap: 8px; }
+.setup > summary .pill { margin-left: auto; }
+.setup > summary::after { content: "▸"; color: var(--muted); }
+.setup[open] > summary::after { content: "▾"; }
+.setup-body { display: grid; gap: 14px; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); padding: 0 14px 14px; }
+.setup-body ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: var(--ink-2); font-size: 13px; }
+.setup-body ol a { color: var(--ink); }
+.setup-fields { display: grid; gap: 10px; align-content: start; }
+.setup-fields .field { display: grid; gap: 4px; }
+.setup-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.setup-msg { font-size: 13px; color: var(--ink-2); margin: 0; }
+.setup-msg.bad { color: var(--bad-text); }
+.setup-msg.good { color: var(--good-text); }
+.team-form { grid-template-columns: minmax(0, 1fr) 140px auto; margin-bottom: 8px; }
+.team-table { min-width: 560px; }
+.team-table select { background: var(--raised); border: 0; box-shadow: inset 0 0 0 1px var(--axis); border-radius: 6px; padding: 4px 6px; }
+@media (max-width: 860px) {
+  .setup-body { grid-template-columns: minmax(0, 1fr); }
+  .team-form { grid-template-columns: minmax(0, 1fr); }
+}
