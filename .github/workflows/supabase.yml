@@ -1,0 +1,72 @@
+name: Supabase
+
+# Sets up the Supabase project: database tables, the Connect functions, and their secrets.
+# Runs when supabase/ changes, or by hand (Actions → Supabase → Run workflow) after adding secrets.
+on:
+  push:
+    branches: [main]
+    paths: ["supabase/**", ".github/workflows/supabase.yml"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - name: Check Supabase is set up
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ] || [ -z "$PROJECT_REF" ]; then
+            echo "::warning::Add SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD (secrets) and SUPABASE_PROJECT_REF (variable) to deploy."
+            echo "SKIP=1" >> "$GITHUB_ENV"
+          fi
+
+      - uses: actions/checkout@v4
+        if: env.SKIP != '1'
+
+      - uses: supabase/setup-cli@v1
+        if: env.SKIP != '1'
+        with:
+          version: latest
+
+      - name: Link project
+        if: env.SKIP != '1'
+        run: supabase link --project-ref "$PROJECT_REF"
+
+      - name: Update database
+        if: env.SKIP != '1'
+        run: supabase db push --include-all
+
+      - name: Deploy Connect functions
+        if: env.SKIP != '1'
+        run: supabase functions deploy --project-ref "$PROJECT_REF"
+
+      - name: Send platform keys to the functions
+        if: env.SKIP != '1'
+        env:
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+          TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+          TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+          META_APP_ID: ${{ secrets.META_APP_ID }}
+          META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          X_CLIENT_ID: ${{ secrets.X_CLIENT_ID }}
+          X_CLIENT_SECRET: ${{ secrets.X_CLIENT_SECRET }}
+        run: |
+          SITE_URL=$(echo "$SITE_URL" | tr '[:upper:]' '[:lower:]')
+          args=("SITE_URL=$SITE_URL")
+          for name in TIKTOK_CLIENT_KEY TIKTOK_CLIENT_SECRET META_APP_ID META_APP_SECRET GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET X_CLIENT_ID X_CLIENT_SECRET; do
+            [ -n "${!name}" ] && args+=("$name=${!name}")
+          done
+          supabase secrets set --project-ref "$PROJECT_REF" "${args[@]}" > /dev/null
+          echo "Updated ${#args[@]} function settings."

@@ -20,6 +20,7 @@ class Account:
     platform: str
     handle: str
     group: str = ""
+    external_id: str = ""   # the platform's own id, filled in when connected by login
 
 
 @dataclass

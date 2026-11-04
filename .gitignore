@@ -4,3 +4,9 @@ __pycache__/
 .pytest_cache/
 .env
 demo/
+# This repo is public: numbers and logins live in Supabase, never in git.
+data/*
+!data/.gitkeep
+dashboard/
+status/*
+!status/last-run.json

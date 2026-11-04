@@ -59,7 +59,11 @@ class FacebookCollector(Collector):
         return None
 
     def fetch(self, account) -> Snapshot:
-        page = self._page(account.handle)
+        conn = self.connection(account)
+        if conn:  # connected on the live page: a permanent Page token
+            page = {"id": account.external_id or account.handle, "access_token": conn["access_token"]}
+        else:     # otherwise find the Page through the System User token
+            page = self._page(account.handle)
         tok = page.get("access_token") or meta.token()
         info = meta.get(self.http, page["id"], tok, fields="name,link,followers_count,fan_count,picture{url}")
         snap = Snapshot(

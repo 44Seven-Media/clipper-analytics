@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
 import urllib.parse
@@ -27,13 +28,22 @@ CREDS = {
 
 def cmd_check(args) -> int:
     cfg = load_config()
+    live = collect.use_supabase()
+    if live:
+        from .supabase_backend import SupabaseBackend
+        with client() as http:
+            cfg.accounts = SupabaseBackend(secret("SUPABASE_URL"), secret("SUPABASE_SERVICE_ROLE_KEY"), http).accounts()
+        print(f"Live page (Supabase): {len(cfg.accounts)} active accounts")
+    else:
+        print(f"{len(cfg.accounts)} accounts in config/accounts.toml")
     counts = Counter(a.platform for a in cfg.accounts)
-    print(f"{len(cfg.accounts)} accounts in config/accounts.toml")
     for platform, needed in CREDS.items():
+        if live and platform == "tiktok":
+            needed = ["TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"]
         missing = [n for n in needed if not secret(n)]
         state = "ready" if not missing else "missing " + ", ".join(missing)
         print(f"  {platform:<10} {counts.get(platform, 0):>3} accounts   {state}")
-    if counts.get("tiktok") and secret("CLIPPER_TOKEN_KEY"):
+    if not live and counts.get("tiktok") and secret("CLIPPER_TOKEN_KEY"):
         store = TokenStore(cfg.data_dir / "tokens.enc", secret("CLIPPER_TOKEN_KEY"))
         try:
             todo = [a.id for a in cfg.accounts if a.platform == "tiktok" and not store.get(a.id)]
@@ -48,14 +58,21 @@ def cmd_check(args) -> int:
 def cmd_collect(args) -> int:
     cfg = load_config()
     only = set(args.only) if args.only else None
+    live = collect.use_supabase()
+    print("Saving to Supabase (live page)." if live else "Saving to data/ (CSV files).")
     s = collect.run(cfg, today=args.date, only=only)
     print(f"Collected {len(s.ok)} accounts, {len(s.failed)} failed, {len(s.skipped)} skipped.")
     for aid, msg in s.failed.items():
         print(f"::warning::{aid}: {msg}" if args.github else f"  FAILED  {aid}: {msg}")
     for aid, msg in s.skipped.items():
         print(f"  skipped {aid}: {msg}")
-    if not args.no_build:
+    if not args.no_build and not live:
         print(f"Dashboard: {build_mod.build(cfg)}")
+    if args.status_file:
+        Path(args.status_file).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.status_file).write_text(json.dumps({
+            "date": args.date or collect.today_utc(), "updated": len(s.ok),
+            "failed": len(s.failed), "skipped": len(s.skipped)}, indent=2) + "\n")
     return 0
 
 
@@ -69,6 +86,10 @@ def cmd_build(args) -> int:
 def cmd_demo(args) -> int:
     root = Path(args.out).resolve()
     cfg = demo.make(root, days=args.days)
+    if args.json:
+        Path(args.json).write_text(json.dumps(build_mod.payload(cfg, demo=True), separators=(",", ":")))
+        print(f"Sample data: {args.json}")
+        return 0
     out = build_mod.build(cfg, out=root / "dashboard.html", fragment=args.fragment, demo=True)
     print(f"Sample dashboard: {out}")
     return 0
@@ -143,6 +164,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--date", help="record under this date (YYYY-MM-DD) instead of today (UTC)")
     p.add_argument("--no-build", action="store_true")
     p.add_argument("--github", action="store_true", help="print failures as GitHub Actions warnings")
+    p.add_argument("--status-file", help="write a small JSON summary (counts only) to this path")
     p.set_defaults(fn=cmd_collect)
 
     p = sub.add_parser("build", help="rebuild dashboard/index.html from the saved history")
@@ -154,6 +176,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", default="demo")
     p.add_argument("--days", type=int, default=120)
     p.add_argument("--fragment", action="store_true")
+    p.add_argument("--json", help="write the sample data as JSON (for the live page) instead of a page")
     p.set_defaults(fn=cmd_demo)
 
     sub.add_parser("keygen", help="create a CLIPPER_TOKEN_KEY").set_defaults(fn=cmd_keygen)

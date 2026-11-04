@@ -1,0 +1,10 @@
+project_id = "clipper-analytics"
+
+# Supabase CLI settings for deploying this project's functions.
+# The callback is opened by TikTok/Meta/Google/X redirecting the browser, so it can't require a sign-in token.
+# It only accepts a one-time `state` created by connect-start for a signed-in team member.
+[functions.connect-start]
+verify_jwt = true
+
+[functions.connect-callback]
+verify_jwt = false

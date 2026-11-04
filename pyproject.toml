@@ -22,9 +22,6 @@ clipper = "clipper_analytics.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.setuptools.package-data]
-clipper_analytics = ["dashboard_template.html"]
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

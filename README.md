@@ -1,146 +1,133 @@
 # Clipper Network analytics
 
-Tracks followers, views and top clips for every clipper account across **YouTube, TikTok,
-Instagram, Facebook and X**, once a day, and draws it all on one dashboard.
+A live page that tracks followers, views and top clips for every clipper account across
+**YouTube, TikTok, Instagram, Facebook and X**. Team members sign in, connect accounts with a
+"Connect" button, and the numbers update once a day.
 
-- **Dashboard:** [`dashboard/index.html`](dashboard/index.html). Open it in any browser.
-- **History:** [`data/`](data/). Plain CSV files, one row per account per day, so nothing is
-  locked inside a tool.
-- **Accounts:** [`config/accounts.toml`](config/accounts.toml). Add a block per account.
-- **Updates:** a GitHub Action runs every morning at about 6 AM Central (Actions tab → "Daily
-  stats"), commits the new numbers, and rebuilds the dashboard.
+- **Live page:** <https://44seven-media.github.io/clipper-analytics/> (sign-in required)
+- **Sample view** with invented numbers: <https://44seven-media.github.io/clipper-analytics/?sample#dashboard>
 
-Every number comes from each platform's own official API. Nothing is scraped.
+## How it fits together
 
-## Seeing the dashboard
+| Piece | Where | What it does |
+|---|---|---|
+| Live page | `web/`, published by GitHub Pages | Sign-in, dashboard, Accounts tab with Connect buttons |
+| Supabase | `supabase/` | Sign-in, the stored numbers, and the Connect step that keeps each platform login |
+| Daily job | `src/`, run by GitHub Actions | Every morning at about 6 AM Central, reads each account through the platform's official API and saves the numbers in Supabase |
 
-The repo is private, so GitHub won't show the page itself. Clone the repo with **GitHub
-Desktop**, click **Fetch origin → Pull origin** to get the latest numbers, and double-click
-`dashboard/index.html`. It needs an internet connection for the chart library.
+This repo is public, but it only holds code. The numbers and the platform logins live in
+Supabase, and only signed-in people on the team list can read the numbers. Nobody can read
+the platform logins from the page.
 
-To preview the layout with invented numbers before any account is connected:
+## One-time setup
 
-```bash
-clipper demo
-```
+### 1. Create the Supabase project (free)
 
-Then open `demo/dashboard.html`. The `demo/` folder is git-ignored and never touches the real data.
+1. At <https://supabase.com/dashboard> create a project named **clipper-analytics**. Save the
+   **database password** it asks you to choose.
+2. **Authentication → Sign In / Providers → Email:** turn **off** "Allow new users to sign up".
+   Only people you add can sign in.
+3. **Authentication → URL Configuration:** set **Site URL** to
+   `https://44seven-media.github.io/clipper-analytics/`. Invite and password-reset emails link there.
 
-## What the dashboard shows
+### 2. Add the Supabase details to GitHub
 
-- **Total followers** across the network, with growth over the selected range.
-- **Views**, **new followers**, **clips posted** and **average views per clip**, each compared
-  with the previous period.
-- **Follower growth** over time, and **where the audience is** split by platform.
-- **Views per day** and **new followers per day**, stacked by platform.
-- **Accounts table**, sortable by any column, with a trend line per account. Click an account
-  to open its own charts and top clips.
-- **Top clips**, either the most viewed in the range or the ones gaining fastest since yesterday.
-- **Data health**: any account that didn't update, and why (expired token, wrong handle…).
+In this repo: **Settings → Secrets and variables → Actions**.
 
-Filters at the top (7 days, 30 days, 90 days, 1 year, all time; platforms; groups) apply to everything.
+**Variables** tab:
 
-## Setup
+| Name | Where to find it |
+|---|---|
+| `SUPABASE_URL` | Supabase → Project Settings → API → Project URL |
+| `SUPABASE_ANON_KEY` | Same page, the `anon` / publishable key (safe to publish) |
+| `SUPABASE_PROJECT_REF` | The id in the project URL, e.g. `abcd1234efgh` |
 
-### 1. Install (on your Mac, once)
+**Secrets** tab:
 
-```bash
-cd "/Users/mattgraham/Real AF/clipper-analytics"
-```
+| Name | Where to find it |
+|---|---|
+| `SUPABASE_SERVICE_ROLE_KEY` | Project Settings → API → `service_role` key. Keep it secret. |
+| `SUPABASE_DB_PASSWORD` | The database password from step 1 |
+| `SUPABASE_ACCESS_TOKEN` | <https://supabase.com/dashboard/account/tokens> → Generate new token |
 
-```bash
-python3.13 -m venv .venv && .venv/bin/pip install -e ".[dev]"
-```
+Then run **Actions → Supabase → Run workflow** (creates the tables and Connect functions), and
+**Actions → Live page → Run workflow** (turns on sign-in on the page).
 
-```bash
-cp .env.example .env && chmod 600 .env
-```
+### 3. Add yourself and your team
 
-Fill in `.env` as you go through the platforms below. It's git-ignored. Every value in it
-also goes into GitHub: **repo → Settings → Secrets and variables → Actions → New repository secret**,
-same name. `.venv/bin/clipper check` shows which platforms are ready.
+1. Supabase → **Authentication → Users → Add user → Create new user**. Enter the email and a
+   password, and tick auto-confirm. For teammates, use **Send invitation** instead; they choose
+   their own password from the email.
+2. Supabase → **SQL Editor**, put each person on the team list:
 
-You can set up one platform at a time. Platforms without credentials are skipped, not failed.
-
-### 2. YouTube (free, about 10 minutes)
-
-1. Go to <https://console.cloud.google.com>, create a project (e.g. "Clipper analytics").
-2. **APIs & Services → Library**, enable **YouTube Data API v3**.
-3. **APIs & Services → Credentials → Create credentials → API key.** Restrict it to the
-   YouTube Data API v3.
-4. Save it as `YOUTUBE_API_KEY`.
-
-Each channel uses about 3 of the 10,000 free daily quota units, so this covers thousands of channels.
-
-### 3. Facebook Pages and Instagram (free, about 30 minutes)
-
-One token covers both. Each Instagram account must be a **Business or Creator** account
-**linked to a Facebook Page** (Instagram app → Settings → Account type and tools).
-
-1. At <https://developers.facebook.com/apps> create an app of type **Business**, connected to
-   your Meta Business portfolio.
-2. In **Meta Business Suite → Settings → Users → System users**, add a system user (Admin).
-3. **Assign assets**: give it every clipper Page and Instagram account (view/insights access).
-4. **Generate token** for your app, expiry **Never**, with these permissions:
-   `pages_show_list`, `pages_read_engagement`, `read_insights`, `instagram_basic`,
-   `instagram_manage_insights`, `business_management`.
-5. Save it as `META_ACCESS_TOKEN`.
-6. List what the token can see, ready to paste into `accounts.toml`:
-
-   ```bash
-   .venv/bin/clipper discover meta
+   ```sql
+   insert into team_members (email) values ('person@example.com');
    ```
 
-Because you're only reading accounts your own business owns, the app normally doesn't need Meta
-app review. When you add a new Page or Instagram account later, assign it to the system user too.
+Someone who can sign in but isn't on the list sees a page telling them to ask for access.
 
-### 4. TikTok (free, needs TikTok's app review)
+### 4. Turn on each platform's Connect button
 
-TikTok only shares account stats after each account logs in once and approves access.
+Each platform needs a developer app. In every app, the **redirect / callback URL** is:
 
-1. At <https://developers.tiktok.com> create an app. Add **Login Kit** and the scopes
-   `user.info.basic`, `user.info.profile`, `user.info.stats` and `video.list`.
-2. Add a **redirect URI**. It can be any `https://` page you control. It only has to load, because
-   you'll copy its address after logging in. Save it as `TIKTOK_REDIRECT_URI`.
-3. Save the app's **Client key** and **Client secret** as `TIKTOK_CLIENT_KEY` and `TIKTOK_CLIENT_SECRET`.
-4. Submit the app for review. Until it's approved, you can use the app's **Sandbox** with the
-   accounts added there as target users.
-5. Create the key that encrypts the saved TikTok logins, and save it as `CLIPPER_TOKEN_KEY`:
-
-   ```bash
-   .venv/bin/clipper keygen
-   ```
-
-6. For each TikTok account in `accounts.toml`, connect it once (log into that TikTok account in
-   your browser first):
-
-   ```bash
-   .venv/bin/clipper auth tiktok realaf-clips-tt
-   ```
-
-7. Commit and push `data/tokens.enc`. It's encrypted, and the daily job keeps it fresh.
-
-A TikTok connection lasts a year from its last use, so daily runs keep it alive. If an account
-shows "TikTok connection expired" under Data health, run step 6 again for it.
-
-### 5. X (paid)
-
-1. At <https://console.x.com> create an app and copy its **Bearer token**.
-2. Add credits. X charges per request. All X accounts' follower counts come from one request
-   a day. Views per post cost more, so `x_recent_posts` in `accounts.toml` sets how many recent
-   posts per account to read (default 10; set 0 for followers only).
-3. Save it as `X_BEARER_TOKEN`.
-
-### 6. Add the accounts and run
-
-Add every account to [`config/accounts.toml`](config/accounts.toml), then try it locally:
-
-```bash
-.venv/bin/clipper collect
+```
+https://<SUPABASE_PROJECT_REF>.supabase.co/functions/v1/connect-callback
 ```
 
-Commit and push. From then on the GitHub Action runs every morning. To run it right away:
-**Actions → Daily stats → Run workflow**.
+Add the app's keys as GitHub **secrets**, then run **Actions → Supabase** again to hand them
+to the Connect functions. A button whose platform isn't set up yet says so when clicked.
+
+**Facebook & Instagram** (free). One sign-in adds every Page you pick and the Instagram
+account linked to each.
+1. <https://developers.facebook.com/apps> → Create app → type **Business**, connected to your
+   business portfolio. Add **Facebook Login for Business**, and put the callback URL under
+   Valid OAuth Redirect URIs.
+2. Secrets: `META_APP_ID`, `META_APP_SECRET` (App settings → Basic).
+3. While the app is in development mode, only people with a role on the app (Admin, Developer,
+   Tester) can connect. Since you only read your own accounts, that's usually enough.
+4. Each Instagram account must be a **Business or Creator** account linked to a Facebook Page.
+
+**TikTok** (free, needs TikTok's app review).
+1. <https://developers.tiktok.com> → create an app, add **Login Kit** with the scopes
+   `user.info.basic`, `user.info.profile`, `user.info.stats` and `video.list`, and add the callback URL.
+2. Secrets: `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`.
+3. Submit for review. Until it's approved, the app's **Sandbox** works for accounts added there
+   as target users.
+4. Connect one TikTok account at a time. Log out of TikTok in your browser between accounts so
+   the next sign-in asks for a different one.
+
+**YouTube** (free).
+1. <https://console.cloud.google.com> → create a project, enable **YouTube Data API v3**.
+2. **APIs & Services → Credentials → Create credentials → API key**, restricted to the YouTube
+   Data API. Secret: `YOUTUBE_API_KEY`. The daily job reads public channel numbers with it.
+3. For the Connect button: **OAuth consent screen** (add yourself as a test user), then
+   **Create credentials → OAuth client ID → Web application** with the callback URL.
+   Secrets: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
+4. You can also skip Connect and add channels by handle on the Accounts tab.
+
+**X** (paid).
+1. <https://console.x.com> → create an app. Turn on **OAuth 2.0** as a confidential client
+   (Web app) with the callback URL. Secrets: `X_CLIENT_ID`, `X_CLIENT_SECRET`.
+2. Copy the app's **Bearer token**. Secret: `X_BEARER_TOKEN`. The daily job reads follower
+   counts and post views with it.
+3. Add credits. X charges per request. `x_recent_posts` in `config/accounts.toml` sets how many
+   recent posts per account it reads each day (default 10; 0 for followers only).
+4. You can also skip Connect and add X accounts by handle.
+
+### 5. Connect the accounts
+
+Open the live page → **Accounts** → **Connect**. The next morning's update fills in the
+dashboard. To get numbers right away, run **Actions → Daily stats → Run workflow**.
+
+## Using the page
+
+- **Dashboard:** total followers, views, new followers, clips posted and average views per clip,
+  each compared with the previous period. Follower growth over time, where the audience is by
+  platform, views and new followers per day, a sortable account table with trend lines, the top
+  clips, and the accounts that didn't update. Click any account for its own charts.
+- **Accounts:** connect accounts, add YouTube or X accounts by handle, rename them, group them,
+  pause tracking, or remove them. Removing an account deletes its history.
+- **Filters** at the top of the dashboard (range, platforms, groups) apply to everything on it.
 
 ## How the numbers are counted
 
@@ -152,35 +139,34 @@ Commit and push. From then on the GitHub Action runs every morning. To run it ri
 | Facebook | Page followers | Facebook's own daily Page views | Per Reel |
 | X | Followers | Change in total views of tracked posts | Per post |
 
-- Growth starts the day an account is added. The APIs only give today's follower count, not
-  history, so the lines fill in day by day.
-- On a day an account fails to update, the dashboard carries its last follower count so
-  network totals don't dip, and lists the account under Data health.
-- Each run refreshes the most recent `recent_posts` posts per account (default 30). Older clips
-  keep their last known numbers.
-- Meta renames insight metrics from time to time. The collectors try the current names first,
-  fall back to older ones, and note it on the dashboard if none work.
+- Growth starts the day an account is connected. The platforms only give today's follower
+  count, so the lines fill in day by day.
+- On a day an account fails to update, the dashboard carries its last follower count so network
+  totals don't dip, and lists the account under Data health with the reason.
+- Each run refreshes the 30 most recent posts per account (`recent_posts` in
+  `config/accounts.toml`). Older clips keep their last known numbers.
+- TikTok logins last a year from their last use, so daily runs keep them alive. If one expires,
+  the Accounts tab shows it; click Connect for that account again.
 
-## Commands
+## Working on the code
 
-| Command | What it does |
-|---|---|
-| `clipper check` | Lists accounts per platform and which credentials are missing |
-| `clipper collect` | Fetches today's numbers and rebuilds the dashboard (`--only <id or platform>`) |
-| `clipper build` | Rebuilds the dashboard from saved data |
-| `clipper demo` | Builds a sample dashboard from invented numbers |
-| `clipper discover meta` | Lists the Pages and Instagram accounts the Meta token can see |
-| `clipper auth tiktok <id>` | Connects a TikTok account |
-| `clipper keygen` | Creates a `CLIPPER_TOKEN_KEY` |
-
-Run them as `.venv/bin/clipper …`, or activate the environment first with `source .venv/bin/activate`.
-
-## Development
+```bash
+python3.13 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+```
 
 ```bash
 .venv/bin/pytest
 ```
 
-Code lives in `src/clipper_analytics/`: one collector per platform in `platforms/`, the CSV
-history in `store.py`, the daily run in `collect.py`, and the dashboard page in
-`dashboard_template.html`.
+- `web/`: the live page. `dashboard.js` draws the dashboard; `app.js` handles sign-in and
+  the Accounts tab. Preview it locally with `python3 -m http.server --directory web` and open
+  `http://localhost:8000/?sample`.
+- `supabase/migrations/`: tables, access rules and the functions the daily job saves through.
+- `supabase/functions/`: the Connect step (`connect-start`, `connect-callback`). Their tests
+  run with `deno test --allow-env supabase/functions/_tests`.
+- `src/clipper_analytics/`: the daily job. One collector per platform in `platforms/`.
+- `clipper demo --json web/sample.json` regenerates the sample data.
+
+Without Supabase settings, `clipper collect` falls back to CSV files in `data/` and
+`clipper build` writes a standalone page to `dashboard/`. Both folders are git-ignored so no
+numbers end up in this public repo.

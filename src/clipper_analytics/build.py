@@ -5,7 +5,6 @@ from __future__ import annotations
 import csv
 import json
 from datetime import datetime, timedelta, timezone
-from importlib import resources
 from pathlib import Path
 
 from .config import Config
@@ -66,20 +65,31 @@ def payload(cfg: Config, demo: bool = False) -> dict:
     }
 
 
+WEB_DIR = Path(__file__).resolve().parents[2] / "web"
+CHART_JS = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"
+
+
 def render(data: dict, fragment: bool = False) -> str:
-    tpl = resources.files("clipper_analytics").joinpath("dashboard_template.html").read_text(encoding="utf-8")
+    """One self-contained page: the shared dashboard code from web/ with the data embedded."""
+    css = (WEB_DIR / "dashboard.css").read_text(encoding="utf-8")
+    js = (WEB_DIR / "dashboard.js").read_text(encoding="utf-8").replace("</script", "<\\/script")
     blob = json.dumps(data, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
-    body = tpl.replace("__DATA__", blob)
+    title = "<title>Clipper Network</title>"
+    body = (
+        '<meta name="claude:viewport-fit-sides" content="cover">\n'
+        f"<style>\n{css}</style>\n"
+        '<div id="root"></div>\n'
+        f'<script src="{CHART_JS}"></script>\n'
+        f'<script id="clipper-data" type="application/json">{blob}</script>\n'
+        f"<script>\n{js}</script>\n"
+        "<script>ClipperDashboard.mount(document.getElementById(\"root\"), "
+        "JSON.parse(document.getElementById(\"clipper-data\").textContent));</script>\n"
+    )
     if fragment:
-        return body
-    # A standalone file keeps its <title> in the head.
-    title = ""
-    start, end = body.find("<title>"), body.find("</title>")
-    if start != -1 and end != -1:
-        title, body = body[start:end + 8], body[:start] + body[end + 8:]
+        return title + "\n" + body
     return ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
-            + title + '\n</head>\n<body>\n' + body + '\n</body>\n</html>\n')
+            + title + '\n</head>\n<body>\n' + body + '</body>\n</html>\n')
 
 
 def build(cfg: Config, out: Path | None = None, fragment: bool = False, demo: bool = False) -> Path:

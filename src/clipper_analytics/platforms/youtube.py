@@ -5,6 +5,7 @@ Costs about 3 quota units per channel per day (the free quota is 10,000).
 from __future__ import annotations
 
 import re
+import time
 
 from ..config import secret
 from ..models import CollectError, NotConfigured, Post, Snapshot
@@ -27,11 +28,31 @@ def parse_duration(iso: str) -> int | None:
 class YouTubeCollector(Collector):
     platform = "youtube"
 
-    def _get(self, path: str, **params) -> dict:
+    def _auth(self, account) -> tuple[dict, dict]:
+        """An API key when there is one; otherwise the Google login saved when the channel was connected."""
         key = secret("YOUTUBE_API_KEY")
-        if not key:
+        if key:
+            return {"key": key}, {}
+        conn = self.connection(account)
+        if not conn:
             raise NotConfigured("YOUTUBE_API_KEY is not set")
-        r = request(self.http, "GET", f"{API}/{path}", params={**params, "key": key})
+        if conn.get("access_expires", 0) - 300 < time.time():
+            cid, csec = secret("GOOGLE_CLIENT_ID"), secret("GOOGLE_CLIENT_SECRET")
+            if not (cid and csec and conn.get("refresh_token")):
+                raise NotConfigured("Set YOUTUBE_API_KEY (or GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)")
+            r = request(self.http, "POST", "https://oauth2.googleapis.com/token", data={
+                "client_id": cid, "client_secret": csec, "refresh_token": conn["refresh_token"],
+                "grant_type": "refresh_token"})
+            body = r.json() if r.content else {}
+            if r.status_code != 200:
+                raise CollectError(f"Google login for this channel stopped working; reconnect it. ({body.get('error_description') or body.get('error')})")
+            conn = {**conn, "access_token": body["access_token"], "access_expires": int(time.time()) + int(body.get("expires_in", 3600))}
+            self.tokens.put(account.id, conn)
+        return {}, {"Authorization": f"Bearer {conn['access_token']}"}
+
+    def _get(self, path: str, **params) -> dict:
+        auth_params, headers = self._auth_for
+        r = request(self.http, "GET", f"{API}/{path}", params={**params, **auth_params}, headers=headers)
         if r.status_code != 200:
             try:
                 msg = r.json()["error"]["message"]
@@ -41,7 +62,8 @@ class YouTubeCollector(Collector):
         return r.json()
 
     def fetch(self, account) -> Snapshot:
-        h = account.handle
+        self._auth_for = self._auth(account)
+        h = account.external_id or account.handle
         if CHANNEL_ID_RE.fullmatch(h):
             lookup = {"id": h}
         else:

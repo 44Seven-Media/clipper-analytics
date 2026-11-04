@@ -50,8 +50,12 @@ class InstagramCollector(Collector):
         return {}
 
     def fetch(self, account) -> Snapshot:
-        tok = meta.token()
-        ig_id = self._ig_id(account.handle)
+        conn = self.connection(account)
+        if conn and account.external_id:  # connected on the live page through its Facebook Page
+            tok, ig_id = conn["access_token"], account.external_id
+        else:
+            tok = meta.token()
+            ig_id = self._ig_id(account.handle)
         info = meta.get(self.http, ig_id, tok,
                         fields="username,name,followers_count,follows_count,media_count,profile_picture_url")
         snap = Snapshot(

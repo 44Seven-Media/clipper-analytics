@@ -1,0 +1,45 @@
+name: Live page
+
+# Publishes web/ to GitHub Pages. Runs when the page changes, or by hand after setting
+# the SUPABASE_URL and SUPABASE_ANON_KEY variables.
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", ".github/workflows/pages.yml"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write page settings
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          cfg = {"supabaseUrl": os.environ["SUPABASE_URL"].strip(), "supabaseAnonKey": os.environ["SUPABASE_ANON_KEY"].strip()}
+          open("web/config.js", "w").write("window.CLIPPER_CONFIG = " + json.dumps(cfg) + ";\n")
+          PY
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+      - id: deploy
+        uses: actions/deploy-pages@v4

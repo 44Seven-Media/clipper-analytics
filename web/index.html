@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Clipper Network</title>
+<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="topbar" id="topbar" hidden>
+  <div class="topbar-inner">
+    <nav class="tabs-nav" aria-label="Sections">
+      <a href="#dashboard" id="nav-dashboard">Dashboard</a>
+      <a href="#accounts" id="nav-accounts">Accounts</a>
+    </nav>
+    <div class="who">
+      <span id="whoEmail"></span>
+      <button type="button" class="linkbtn" id="signOut">Sign out</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<section id="view-login" class="auth-wrap" hidden>
+  <div class="auth-card">
+    <h1>Clipper Network</h1>
+    <p class="muted" id="authLead">Sign in to see followers, views and top clips across every clipper account.</p>
+    <p class="notice" id="notConfigured" hidden>Sign-in isn't set up yet. The page is live, but it still needs its Supabase project. You can look at the sample dashboard in the meantime.</p>
+    <form id="loginForm" novalidate>
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="username" required>
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <p class="form-error" id="loginError" hidden></p>
+      <button type="submit" class="btn-primary" id="loginBtn">Sign in</button>
+      <button type="button" class="linkbtn" id="forgotBtn">Forgot password?</button>
+    </form>
+    <form id="newPassForm" novalidate hidden>
+      <label for="newPassword">Choose a password</label>
+      <input id="newPassword" type="password" autocomplete="new-password" minlength="10" required>
+      <p class="hint">At least 10 characters.</p>
+      <p class="form-error" id="newPassError" hidden></p>
+      <button type="submit" class="btn-primary" id="newPassBtn">Save password</button>
+    </form>
+    <div class="auth-foot"><a href="?sample#dashboard" id="sampleLink">View sample dashboard</a></div>
+  </div>
+</section>
+
+<section id="view-notteam" class="auth-wrap" hidden>
+  <div class="auth-card">
+    <h1>Almost there</h1>
+    <p>You're signed in as <b id="notTeamEmail"></b>, but that email isn't on the team list yet.</p>
+    <p class="muted">An admin adds it in Supabase → SQL Editor:</p>
+    <pre class="code" id="notTeamSql"></pre>
+    <button type="button" class="btn" id="notTeamRetry">I've been added, try again</button>
+    <button type="button" class="linkbtn" id="notTeamSignOut">Sign out</button>
+  </div>
+</section>
+
+<div id="view-dashboard" hidden></div>
+
+<section id="view-accounts" class="acc-page" hidden>
+  <header class="acc-head">
+    <h1>Accounts</h1>
+    <p class="muted">Connect each account once. The daily update at about 6 AM Central does the rest.</p>
+    <p class="notice" id="sampleNotice" hidden>This is the sample view. Connect buttons work once sign-in is set up.</p>
+  </header>
+
+  <section class="card">
+    <div class="card-head"><div><h2>Connect accounts</h2><p class="sub">You'll sign in on the platform's own page and choose what to share.</p></div></div>
+    <div class="connect-grid" id="connectGrid"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><div><h2>Add by handle</h2><p class="sub">YouTube channels and X accounts can be tracked from public numbers without signing in.</p></div></div>
+    <form class="handle-form" id="handleForm" novalidate>
+      <div class="field"><label for="hfPlatform">Platform</label>
+        <select id="hfPlatform"><option value="youtube">YouTube</option><option value="x">X</option></select></div>
+      <div class="field"><label for="hfHandle">Handle</label><input id="hfHandle" placeholder="@realafclips" required></div>
+      <div class="field"><label for="hfName">Name on the dashboard</label><input id="hfName" placeholder="REAL AF Clips" required></div>
+      <div class="field"><label for="hfGroup">Group (optional)</label><input id="hfGroup" placeholder="REAL AF" list="groupList"></div>
+      <button type="submit" class="btn-primary" id="hfSubmit">Add account</button>
+    </form>
+    <datalist id="groupList"></datalist>
+    <p class="form-error" id="hfError" hidden></p>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><div><h2 id="accCount">Tracked accounts</h2><p class="sub">Rename, group, pause or remove. Paused accounts keep their history but stop updating.</p></div></div>
+    <div class="table-wrap"><table class="acc-table">
+      <thead><tr><th class="l" scope="col">Account</th><th class="l" scope="col">Platform</th><th class="l" scope="col">Group</th>
+        <th class="l" scope="col">Connected by</th><th class="l" scope="col">Last update</th><th class="l" scope="col">Tracking</th><th scope="col"><span class="sr">Actions</span></th></tr></thead>
+      <tbody id="accRows"></tbody>
+    </table></div>
+    <p class="sub" id="accEmpty" hidden>No accounts yet. Use Connect above to add the first ones.</p>
+  </section>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="dashboard.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
