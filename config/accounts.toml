@@ -1,0 +1,54 @@
+# Every account the dashboard tracks. Add a block per account and the next daily run picks it up.
+#
+#   id        short unique name used in the data files (letters, numbers, dashes). Never change it.
+#   name      what the dashboard shows
+#   platform  youtube | tiktok | instagram | facebook | x
+#   handle    YouTube: @handle or channel id (UC...)
+#             TikTok: @username (must be connected once with: clipper auth tiktok <id>)
+#             Instagram: username (must be a Business/Creator account linked to a Facebook Page)
+#             Facebook: Page id (run `clipper discover meta` to list them)
+#             X: username without @
+#   group     optional label to group accounts (e.g. "REAL AF", "75 Hard")
+
+[settings]
+# How many recent posts per account to refresh each day (views per clip, top clips).
+recent_posts = 30
+# X charges per post read, so it gets its own limit. Set to 0 to track followers only.
+x_recent_posts = 10
+
+# --- Examples: replace with your accounts -------------------------------------
+
+# [[accounts]]
+# id = "realaf-clips-yt"
+# name = "REAL AF Clips"
+# platform = "youtube"
+# handle = "@realafclips"
+# group = "REAL AF"
+
+# [[accounts]]
+# id = "realaf-clips-tt"
+# name = "REAL AF Clips"
+# platform = "tiktok"
+# handle = "@realafclips"
+# group = "REAL AF"
+
+# [[accounts]]
+# id = "realaf-clips-ig"
+# name = "REAL AF Clips"
+# platform = "instagram"
+# handle = "realafclips"
+# group = "REAL AF"
+
+# [[accounts]]
+# id = "realaf-clips-fb"
+# name = "REAL AF Clips"
+# platform = "facebook"
+# handle = "123456789012345"
+# group = "REAL AF"
+
+# [[accounts]]
+# id = "realaf-clips-x"
+# name = "REAL AF Clips"
+# platform = "x"
+# handle = "realafclips"
+# group = "REAL AF"

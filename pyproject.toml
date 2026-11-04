@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clipper-analytics"
+version = "0.1.0"
+description = "Daily follower and view tracking for the clipper network, with a visual dashboard"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27,<1",
+    "python-dotenv>=1.0,<2",
+    "cryptography>=42",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "respx>=0.21"]
+
+[project.scripts]
+clipper = "clipper_analytics.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+clipper_analytics = ["dashboard_template.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
