@@ -67,7 +67,8 @@
   function platformReady(id) {
     if (!settings) return null;
     const f = settings.platforms[PLATFORM_KEYS[id]] || [];
-    const need = id === "youtube" ? ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"] : id === "x" ? ["X_CLIENT_ID", "X_CLIENT_SECRET"] : f.map(x => x.key);
+    const need = id === "youtube" ? ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"] : id === "x" ? ["X_CLIENT_ID", "X_CLIENT_SECRET"]
+      : id === "meta" ? ["META_APP_ID", "META_APP_SECRET"] : f.map(x => x.key);
     return need.every(k => (f.find(x => x.key === k) || {}).saved);
   }
 
@@ -238,6 +239,7 @@
     { id: "meta", title: "Facebook & Instagram", plats: ["facebook", "instagram"], steps: [
       ["Go to ", ["Meta for Developers", "https://developers.facebook.com/apps"], " → Create app. Pick ", ["b", "Other"], ", then ", ["b", "Business"], ", and link your business portfolio."],
       ["Add the product ", ["b", "Facebook Login for Business"], ". In its Settings, paste the callback URL into ", ["b", "Valid OAuth Redirect URIs"], "."],
+      ["Facebook Login for Business → Configurations: create one with a ", ["b", "User access token"], " and the permissions pages_show_list, pages_read_engagement, read_insights, instagram_basic, instagram_manage_insights and business_management. Copy its ", ["b", "Configuration ID"], " here."],
       ["Open App settings → Basic and copy the ", ["b", "App ID"], " and ", ["b", "App secret"], " here."],
       ["Each Instagram account must be a Business or Creator account linked to its Facebook Page."],
       ["While the app is in development mode, whoever clicks Connect needs a role on the app (Admin, Developer or Tester)."],

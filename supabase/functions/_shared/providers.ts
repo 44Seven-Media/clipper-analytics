@@ -68,10 +68,14 @@ const tiktok: Provider = {
 const meta: Provider = {
   secrets: ["META_APP_ID", "META_APP_SECRET"],
   async authorizeUrl(state, _v, redirect) {
-    const q = new URLSearchParams({
-      client_id: env("META_APP_ID"), redirect_uri: redirect, state, response_type: "code",
-      scope: "pages_show_list,pages_read_engagement,read_insights,instagram_basic,instagram_manage_insights,business_management",
-    });
+    const q = new URLSearchParams({ client_id: env("META_APP_ID"), redirect_uri: redirect, state, response_type: "code" });
+    if (env("META_CONFIG_ID")) {
+      // Facebook Login for Business apps take their permissions from a saved Login Configuration.
+      q.set("config_id", env("META_CONFIG_ID"));
+      q.set("override_default_response_type", "true");
+    } else {
+      q.set("scope", "pages_show_list,pages_read_engagement,read_insights,instagram_basic,instagram_manage_insights,business_management");
+    }
     return `https://www.facebook.com/v24.0/dialog/oauth?${q}`;
   },
   async finish(code, _v, redirect) {

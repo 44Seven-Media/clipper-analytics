@@ -7,6 +7,7 @@ const PLATFORMS: Record<string, Field[]> = {
   meta: [
     { key: "META_APP_ID", label: "App ID", secret: false },
     { key: "META_APP_SECRET", label: "App secret", secret: true },
+    { key: "META_CONFIG_ID", label: "Login configuration ID", secret: false },
   ],
   tiktok: [
     { key: "TIKTOK_CLIENT_KEY", label: "Client key", secret: false },
