@@ -1,0 +1,8 @@
+body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 68ch; margin: 0 auto; padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-size: 26px; margin: 0 0 4px; text-wrap: balance; }
+h2 { font-size: 17px; margin: 28px 0 6px; }
+p, li { color: var(--ink-2); }
+.updated { color: var(--muted); font-size: 13px; margin: 0 0 24px; }
+a { color: var(--ink); }
