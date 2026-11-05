@@ -10,3 +10,4 @@ data/*
 dashboard/
 status/*
 !status/last-run.json
+supabase/.temp/

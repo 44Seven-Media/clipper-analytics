@@ -1,5 +1,12 @@
 project_id = "clipper-analytics"
 
+# Sign-in: only people invited from Settings → Team can sign in. Invite and password-reset
+# emails link back to the live page.
+[auth]
+site_url = "https://44seven-media.github.io/clipper-analytics/"
+additional_redirect_urls = ["https://44seven-media.github.io/clipper-analytics/"]
+enable_signup = false
+
 # Supabase CLI settings for deploying this project's functions.
 # The callback is opened by TikTok/Meta/Google/X redirecting the browser, so it can't require a sign-in token.
 # It only accepts a one-time `state` created by connect-start for a signed-in team member.
